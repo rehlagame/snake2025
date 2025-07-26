@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>لعبة الثعبان 2025</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Cairo:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --primary-color: #00f0a8;
+            --food-color: #ff5a5a;
+            --food-glow: #ff3333;
+            --container-bg: #16213e;
+            --text-color: #e3e3e3;
+            --shadow-color: rgba(0, 240, 168, 0.5);
+            --food-shadow-color: rgba(255, 90, 90, 0.8);
+            --button-bg: #2c3e50;
+            --button-active-bg: #34495e;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 60px; /* مساحة للفوتر */
+        }
+        .game-container {
+            width: 95vw;
+            max-width: 420px;
+            height: 90vh;
+            max-height: 800px;
+            background-color: var(--container-bg);
+            border: 2px solid var(--primary-color);
+            border-radius: 20px;
+            box-shadow: 0 0 30px var(--shadow-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2rem;
+            border-bottom: 2px solid var(--primary-color);
+            text-shadow: 0 0 10px var(--shadow-color);
+        }
+        #score { direction: ltr; }
+        .sound-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .sound-toggle, .music-toggle {
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .sound-toggle:hover, .music-toggle:hover {
+            background-color: rgba(0, 240, 168, 0.2);
+        }
+        .sound-toggle svg, .music-toggle svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--primary-color);
+        }
+        .canvas-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        #gameCanvas {
+            background-color: #0f131a;
+            border-radius: 10px;
+        }
+        .controls {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 15px;
+            grid-template-areas:
+                ". up ."
+                "right down left";
+        }
+        .controls button {
+            font-family: 'Press Start 2P', cursive;
+            background-color: var(--button-bg);
+            border: none;
+            border-radius: 15px;
+            color: var(--primary-color);
+            padding: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 0 #1e2a38;
+        }
+        .controls button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+            background-color: var(--button-active-bg);
+        }
+        .controls button svg {
+            width: 30px;
+            height: 30px;
+            fill: var(--primary-color);
+        }
+        #up-btn { grid-area: up; }
+        #left-btn { grid-area: left; }
+        #down-btn { grid-area: down; }
+        #right-btn { grid-area: right; }
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(22, 33, 62, 0.9);
+            backdrop-filter: blur(5px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; color: white; z-index: 10; transition: opacity 0.5s ease;
+        }
+        .overlay.hidden { opacity: 0; pointer-events: none; }
+        .overlay h2 {
+            font-size: 2.5rem; margin-bottom: 10px; font-family: 'Press Start 2P', cursive;
+            color: var(--primary-color); text-shadow: 0 0 15px var(--shadow-color);
+        }
+        .overlay p { font-size: 1.5rem; margin-bottom: 30px; }
+        .overlay button {
+            font-family: 'Press Start 2P', cursive; padding: 15px 30px; font-size: 1rem;
+            background-color: var(--primary-color); color: var(--container-bg);
+            border: none; border-radius: 10px; cursor: pointer; transition: transform 0.2s ease;
+        }
+        .overlay button:hover { transform: scale(1.1); }
+        .food-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: var(--food-color);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particle-float 1s ease-out forwards;
+        }
+        @keyframes particle-float {
+            to {
+                transform: translateY(-20px) scale(0);
+                opacity: 0;
+            }
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(22, 33, 62, 0.9);
+            padding: 15px;
+            text-align: center;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.9rem;
+            border-top: 1px solid var(--primary-color);
+            backdrop-filter: blur(10px);
+            z-index: 5;
+        }
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            position: relative;
+            display: inline-block;
+            padding: 5px 15px;
+        }
+        .footer a:hover {
+            color: #63ffcd;
+            text-shadow: 0 0 10px var(--shadow-color);
+            transform: translateY(-2px);
+        }
+        .footer a::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background-color: var(--primary-color);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        .footer a:hover::before {
+            width: 100%;
+        }
+        @media (max-height: 700px) {
+            .footer {
+                padding: 10px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="info-bar">
+        <span>النتيجة</span>
+        <span id="score">00</span>
+        <div class="sound-controls">
+            <div class="sound-toggle" id="soundToggle" title="المؤثرات الصوتية">
+                <svg id="soundOn" viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+                <svg id="soundOff" style="display: none;" viewBox="0 0 24 24">
+                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                </svg>
+            </div>
+            <div class="music-toggle" id="musicToggle" title="الموسيقى الخلفية">
+                <svg id="musicOn" viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+                <svg id="musicOff" style="display: none;" viewBox="0 0 24 24">
+                    <path d="M4.27 3L3 4.27l9 9v.28c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4v-1.73L19.73 21 21 19.73 4.27 3zM14 7h4V3h-6v5.18l2 2z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+    <div class="canvas-wrapper"><canvas id="gameCanvas"></canvas></div>
+    <div class="controls">
+        <button id="up-btn"><svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg></button>
+        <button id="left-btn"><svg viewBox="0 0 24 24"><path d="M15.41 7.41L10.83 12l4.58 4.59L14 18l-6-6 6-6z"/></svg></button>
+        <button id="down-btn"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>
+        <button id="right-btn"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></button>
+    </div>
+    <div id="startScreen" class="overlay">
+        <h2>Snake 2025</h2>
+        <p>لعبة الثعبان بنكهة عصرية</p>
+        <button id="start-btn">ابدأ اللعب</button>
+        <p style="font-size: 0.8rem; margin-top: 20px; opacity: 0.7;">
+            ضع ملف music.wav في نفس مجلد اللعبة لتشغيل الموسيقى
+        </p>
+    </div>
+    <div id="gameOverScreen" class="overlay hidden">
+        <h2>انتهت اللعبة</h2><p>النتيجة النهائية: <span id="finalScore">0</span></p><button id="restart-btn">العب مجدداً</button>
+    </div>
+</div>
+
+<footer class="footer">
+    <a href="https://www.olosolutions.cc/" target="_blank" rel="noopener noreferrer">
+        Created by: Olosolutions
+    </a>
+</footer>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const finalScoreElement = document.getElementById('finalScore');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const startBtn = document.getElementById('start-btn');
+    const restartBtn = document.getElementById('restart-btn');
+    const upBtn = document.getElementById('up-btn');
+    const downBtn = document.getElementById('down-btn');
+    const leftBtn = document.getElementById('left-btn');
+    const rightBtn = document.getElementById('right-btn');
+    const soundToggle = document.getElementById('soundToggle');
+    const soundOnIcon = document.getElementById('soundOn');
+    const soundOffIcon = document.getElementById('soundOff');
+    const musicToggle = document.getElementById('musicToggle');
+    const musicOnIcon = document.getElementById('musicOn');
+    const musicOffIcon = document.getElementById('musicOff');
+
+    const gridSize = 20;
+    let canvasSize, tileCountX, tileCountY;
+    let snake, food, score, direction, dx, dy, isGameOver, gameSpeed, gameLoopTimeout;
+    let soundEnabled = true;
+    let musicEnabled = true;
+    let backgroundMusic;
+
+    // إنشاء الأصوات باستخدام Web Audio API
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // إعداد الموسيقى الخلفية
+    function setupBackgroundMusic() {
+        backgroundMusic = new Audio('music.wav');
+        backgroundMusic.loop = true;
+        backgroundMusic.volume = 0.3; // مستوى صوت منخفض للموسيقى الخلفية
+    }
+
+    function toggleMusic() {
+        if (musicEnabled && backgroundMusic) {
+            backgroundMusic.play().catch(err => {
+                console.log('تعذر تشغيل الموسيقى:', err);
+            });
+        } else if (backgroundMusic) {
+            backgroundMusic.pause();
+        }
+    }
+
+    function playSound(type) {
+        if (!soundEnabled) return;
+
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        switch(type) {
+            case 'eat':
+                oscillator.frequency.value = 587.33; // D5
+                gainNode.gain.value = 0.3;
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+
+                setTimeout(() => {
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.frequency.value = 880; // A5
+                    gain2.gain.value = 0.2;
+                    osc2.start(audioContext.currentTime);
+                    osc2.stop(audioContext.currentTime + 0.1);
+                }, 50);
+                break;
+
+            case 'gameOver':
+                oscillator.frequency.value = 200;
+                oscillator.type = 'square';
+                gainNode.gain.value = 0.2;
+                oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.5);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+                break;
+
+            case 'start':
+                oscillator.frequency.value = 440; // A4
+                gainNode.gain.value = 0.3;
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.05);
+
+                setTimeout(() => {
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.frequency.value = 554.37; // C#5
+                    gain2.gain.value = 0.3;
+                    osc2.start(audioContext.currentTime);
+                    osc2.stop(audioContext.currentTime + 0.05);
+                }, 100);
+
+                setTimeout(() => {
+                    const osc3 = audioContext.createOscillator();
+                    const gain3 = audioContext.createGain();
+                    osc3.connect(gain3);
+                    gain3.connect(audioContext.destination);
+                    osc3.frequency.value = 659.25; // E5
+                    gain3.gain.value = 0.3;
+                    osc3.start(audioContext.currentTime);
+                    osc3.stop(audioContext.currentTime + 0.15);
+                }, 200);
+                break;
+        }
+    }
+
+    function setupCanvas() {
+        const wrapper = document.querySelector('.canvas-wrapper');
+        const wrapperSize = Math.min(wrapper.clientWidth, wrapper.clientHeight) - 20;
+        canvasSize = Math.floor(wrapperSize / gridSize) * gridSize;
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+        tileCountX = canvas.width / gridSize;
+        tileCountY = canvas.height / gridSize;
+    }
+
+    function initGame() {
+        isGameOver = false;
+        gameOverScreen.classList.add('hidden');
+
+        const startX = Math.floor(tileCountX / 2);
+        const startY = 5;
+        snake = [
+            { x: startX, y: startY },
+            { x: startX, y: startY - 1 },
+            { x: startX, y: startY - 2 }
+        ];
+
+        direction = 'down';
+        dx = 0; dy = 1;
+
+        score = 0;
+        gameSpeed = 150;
+        scoreElement.textContent = '00';
+
+        generateFood();
+        playSound('start');
+
+        // تشغيل الموسيقى عند بدء اللعبة
+        toggleMusic();
+
+        if (gameLoopTimeout) clearTimeout(gameLoopTimeout);
+        gameLoop();
+    }
+
+    function gameLoop() {
+        if (isGameOver) {
+            showGameOver();
+            return;
+        }
+        update();
+        draw();
+        gameLoopTimeout = setTimeout(gameLoop, gameSpeed);
+    }
+
+    function update() {
+        let head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+        // العبور من الجدران - إذا خرج من جدار يظهر من الجدار المقابل
+        if (head.x < 0) head.x = tileCountX - 1;
+        if (head.x >= tileCountX) head.x = 0;
+        if (head.y < 0) head.y = tileCountY - 1;
+        if (head.y >= tileCountY) head.y = 0;
+
+        // فحص الاصطدام بالجسم
+        for (let i = 0; i < snake.length; i++) {
+            if (head.x === snake[i].x && head.y === snake[i].y) {
+                isGameOver = true;
+                playSound('gameOver');
+                return;
+            }
+        }
+
+        snake.unshift(head);
+
+        if (head.x === food.x && head.y === food.y) {
+            score++;
+            scoreElement.textContent = score.toString().padStart(2, '0');
+            playSound('eat');
+            createFoodParticles(food.x * gridSize + gridSize / 2, food.y * gridSize + gridSize / 2);
+            generateFood(); // توليد طعام جديد
+            if (score % 5 === 0 && gameSpeed > 60) gameSpeed -= 10;
+            // لا نحذف الذيل هنا، مما يجعل الثعبان ينمو
+        } else {
+            snake.pop(); // نحذف الذيل فقط إذا لم يأكل الطعام
+        }
+    }
+
+    function draw() {
+        // مسح الكانفاس
+        ctx.fillStyle = '#0f131a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // رسم خطوط الشبكة الخفيفة
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= tileCountX; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * gridSize, 0);
+            ctx.lineTo(i * gridSize, canvas.height);
+            ctx.stroke();
+        }
+        for (let i = 0; i <= tileCountY; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, i * gridSize);
+            ctx.lineTo(canvas.width, i * gridSize);
+            ctx.stroke();
+        }
+
+        // رسم الطعام مع تأثير النبض
+        const pulse = Math.abs(Math.sin(Date.now() / 300)) * 5;
+
+        // رسم هالة حول الطعام
+        ctx.fillStyle = 'rgba(255, 90, 90, 0.3)';
+        ctx.beginPath();
+        ctx.arc(food.x * gridSize + gridSize / 2, food.y * gridSize + gridSize / 2, gridSize / 2 + pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // رسم الطعام نفسه
+        ctx.fillStyle = '#ff5a5a';
+        ctx.shadowColor = '#ff5a5a';
+        ctx.shadowBlur = 20 + pulse;
+
+        // رسم الطعام كدائرة
+        ctx.beginPath();
+        ctx.arc(food.x * gridSize + gridSize / 2, food.y * gridSize + gridSize / 2, gridSize / 2 - 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // إضافة نقطة مضيئة في المنتصف
+        ctx.fillStyle = '#ff8080';
+        ctx.beginPath();
+        ctx.arc(food.x * gridSize + gridSize / 2 - 3, food.y * gridSize + gridSize / 2 - 3, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // رسم الثعبان
+        ctx.shadowColor = 'var(--shadow-color)';
+        ctx.shadowBlur = 10;
+
+        snake.forEach((segment, index) => {
+            const gradient = ctx.createRadialGradient(
+                segment.x * gridSize + gridSize / 2,
+                segment.y * gridSize + gridSize / 2,
+                0,
+                segment.x * gridSize + gridSize / 2,
+                segment.y * gridSize + gridSize / 2,
+                gridSize / 2
+            );
+
+            if (index === 0) {
+                gradient.addColorStop(0, '#63ffcd');
+                gradient.addColorStop(1, '#00f0a8');
+            } else {
+                gradient.addColorStop(0, '#00f0a8');
+                gradient.addColorStop(1, '#00c896');
+            }
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(segment.x * gridSize + 2, segment.y * gridSize + 2, gridSize - 4, gridSize - 4);
+
+            // إضافة عيون للرأس
+            if (index === 0) {
+                ctx.fillStyle = '#0f131a';
+                ctx.shadowBlur = 0;
+                const eyeSize = 3;
+                const eyeOffset = 5;
+
+                if (direction === 'up') {
+                    ctx.fillRect(segment.x * gridSize + eyeOffset, segment.y * gridSize + eyeOffset, eyeSize, eyeSize);
+                    ctx.fillRect(segment.x * gridSize + gridSize - eyeOffset - eyeSize, segment.y * gridSize + eyeOffset, eyeSize, eyeSize);
+                } else if (direction === 'down') {
+                    ctx.fillRect(segment.x * gridSize + eyeOffset, segment.y * gridSize + gridSize - eyeOffset - eyeSize, eyeSize, eyeSize);
+                    ctx.fillRect(segment.x * gridSize + gridSize - eyeOffset - eyeSize, segment.y * gridSize + gridSize - eyeOffset - eyeSize, eyeSize, eyeSize);
+                } else if (direction === 'left') {
+                    ctx.fillRect(segment.x * gridSize + eyeOffset, segment.y * gridSize + eyeOffset, eyeSize, eyeSize);
+                    ctx.fillRect(segment.x * gridSize + eyeOffset, segment.y * gridSize + gridSize - eyeOffset - eyeSize, eyeSize, eyeSize);
+                } else if (direction === 'right') {
+                    ctx.fillRect(segment.x * gridSize + gridSize - eyeOffset - eyeSize, segment.y * gridSize + eyeOffset, eyeSize, eyeSize);
+                    ctx.fillRect(segment.x * gridSize + gridSize - eyeOffset - eyeSize, segment.y * gridSize + gridSize - eyeOffset - eyeSize, eyeSize, eyeSize);
+                }
+            }
+        });
+
+        ctx.shadowBlur = 0;
+    }
+
+    function generateFood() {
+        do {
+            food = {
+                x: Math.floor(Math.random() * tileCountX),
+                y: Math.floor(Math.random() * tileCountY)
+            };
+        } while (snake.some(segment => segment.x === food.x && segment.y === food.y));
+    }
+
+    function createFoodParticles(x, y) {
+        const canvasRect = canvas.getBoundingClientRect();
+        for (let i = 0; i < 8; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'food-particle';
+            particle.style.left = canvasRect.left + x + 'px';
+            particle.style.top = canvasRect.top + y + 'px';
+            particle.style.transform = `rotate(${i * 45}deg) translateX(10px)`;
+            document.body.appendChild(particle);
+            setTimeout(() => particle.remove(), 1000);
+        }
+    }
+
+    function changeDirection(newDirection) {
+        switch (newDirection) {
+            case 'up': if (direction !== 'down') { direction = 'up'; dx = 0; dy = -1; } break;
+            case 'down': if (direction !== 'up') { direction = 'down'; dx = 0; dy = 1; } break;
+            case 'left': if (direction !== 'right') { direction = 'left'; dx = -1; dy = 0; } break;
+            case 'right': if (direction !== 'left') { direction = 'right'; dx = 1; dy = 0; } break;
+        }
+    }
+
+    function showGameOver() {
+        finalScoreElement.textContent = score;
+        gameOverScreen.classList.remove('hidden');
+        // إيقاف الموسيقى عند انتهاء اللعبة
+        if (backgroundMusic) {
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+        }
+    }
+
+    // التحكم بالصوت
+    soundToggle.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        soundOnIcon.style.display = soundEnabled ? 'block' : 'none';
+        soundOffIcon.style.display = soundEnabled ? 'none' : 'block';
+    });
+
+    // التحكم بالموسيقى
+    musicToggle.addEventListener('click', () => {
+        musicEnabled = !musicEnabled;
+        musicOnIcon.style.display = musicEnabled ? 'block' : 'none';
+        musicOffIcon.style.display = musicEnabled ? 'none' : 'block';
+        toggleMusic();
+    });
+
+    // أحداث لوحة المفاتيح
+    document.addEventListener('keydown', e => {
+        switch (e.key) {
+            case 'ArrowUp': case 'w': changeDirection('up'); break;
+            case 'ArrowDown': case 's': changeDirection('down'); break;
+            case 'ArrowLeft': case 'a': changeDirection('left'); break;
+            case 'ArrowRight': case 'd': changeDirection('right'); break;
+        }
+    });
+
+    // أحداث الأزرار
+    upBtn.addEventListener('click', () => changeDirection('up'));
+    downBtn.addEventListener('click', () => changeDirection('down'));
+    leftBtn.addEventListener('click', () => changeDirection('left'));
+    rightBtn.addEventListener('click', () => changeDirection('right'));
+
+    startBtn.addEventListener('click', () => {
+        startScreen.classList.add('hidden');
+        initGame();
+    });
+    restartBtn.addEventListener('click', initGame);
+
+    // إعداد الكانفاس
+    window.addEventListener('load', () => {
+        setupCanvas();
+        setupBackgroundMusic();
+    });
+    window.addEventListener('resize', setupCanvas);
+
+    // منع السحب على الأجهزة المحمولة
+    document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+</script>
+</body>
+</html>
